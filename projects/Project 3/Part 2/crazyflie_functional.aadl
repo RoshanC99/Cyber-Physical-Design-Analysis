@@ -1,0 +1,450 @@
+package Crazyflie_functional
+
+-- This package models the abstract functional chain of the Crazyflie,
+-- from https://wiki.bitcraze.io/doc:crazyflie:dev:fimware:sensor_to_control
+
+public
+
+  abstract Accelero
+  features
+    Accelero_Out : out data port;
+
+  flows
+    f1 : flow source Accelero_Out {latency => 100 us .. 300 us; };		
+
+  properties
+    Dispatch_Protocol => Periodic;
+    Period => 4 ms; --  250 Hz
+    
+  -- Roshan Cheriyan begin q9 addition 
+  annex EMV2 {**
+  	use types Crazyflie_Errors;
+  	use behavior Crazyflie_Errors::simple;
+  	
+  	-- Roshan Cheriyan begin q12 addition
+  	error propagations
+  	--outgoing error propagation
+  	  Accelero_out: out propagation {ValueError};
+  	flows
+  	  --When the sensor fails, its error is propagated through port Accelero_Out
+  	  ErrorSource: error source Accelero_out {ValueError} when {ValueError};
+  	end propagations;
+  	-- Roshan Cheriyan end q12 addition
+  	
+  	properties
+  	  -- Useful for FHA reports
+  	  EMV2::OccurrenceDistribution => [ ProbabilityValue => 1.0e-9 ; Distribution => Poisson;] applies to Failed;
+  	  EMV2::severity => 1 applies to Failed;
+  	  EMV2::likelihood => C applies to Failed;
+  	  EMV2::hazards =>
+  	    ([ crossreference => "";
+  	       --failure => "Loss of sensor readings";
+  	       failure => "ValueErroneous";
+  	       --phases => ("all");
+  	       phases => ("In Flight Mode");
+  	       --description => "Sensor failure";
+  	       description => "Accelero sensor failure resuling motion sensor reading loss";
+  	       --comment => "May be critical as no redundancy on UAV";
+  	       comment => "May be critical for flight stability, no redudancy present";
+  	     ]) applies to Failed;
+  	  --component error behavior 
+  	    --transitions
+  	      --t1 : Operational -[ failure]-> Failed;
+  	  --end compoent;
+  **};
+  -- Roshan Cheriyan end q9 addition 
+  end Accelero;
+
+
+
+
+  abstract Gyro
+  features
+    Gyro_Out : out data port;
+    
+  flows
+    f1 : flow source Gyro_Out {latency => 100 us .. 300 us; };		
+    
+  properties
+    Dispatch_Protocol => Periodic;
+    Period => 4 ms; --  250 Hz
+    
+  -- Roshan Cheriyan begin q9 addition 
+  annex EMV2 {**
+  	use types Crazyflie_Errors;
+  	use behavior Crazyflie_Errors::simple;
+  	
+  	-- Roshan Cheriyan begin q12 addition
+  	error propagations
+  	--outgoing error propagation
+  	  Gyro_out: out propagation {ValueError};
+  	flows
+  	  --When the sensor fails, its error is propagated through port Accelero_Out
+  	  ErrorSource: error source Gyro_out {ValueError} when {ValueError};
+  	end propagations;
+  	-- Roshan Cheriyan end q12 addition
+  	
+  	properties
+  	  -- Useful for FHA reports
+  	  EMV2::OccurrenceDistribution => [ ProbabilityValue => 1.0e-9 ; Distribution => Poisson;] applies to Failed;
+  	  EMV2::severity => 1 applies to Failed;
+  	  EMV2::likelihood => C applies to Failed;
+  	  EMV2::hazards =>
+  	    ([ crossreference => "";
+  	       --failure => "Loss of sensor readings";
+  	       failure => "ValueErroneous";
+  	       --phases => ("all");
+  	       phases => ("In Flight Mode");
+  	       --description => "Sensor failure";
+  	       description => "Gyro sensor failure resulting angular velocity measurement loss";
+  	       --comment => "May be critical as no redundancy on UAV";
+  	       comment => "May impact the control loop response and orientation stability";
+  	     ]) applies to Failed;
+  	  --component error behavior 
+  	    --transitions
+  	      --t1 : Operational -[ failure]-> Failed;
+  	  --end compoent;
+  **};
+  -- Roshan Cheriyan end q9 addition
+  end Gyro;
+
+
+
+
+  abstract Magneto
+  features
+    Magneto_Out : out data port;
+    
+ flows
+   f1 : flow source Magneto_Out {latency => 100 us .. 300 us; };		
+    
+  properties
+    Dispatch_Protocol => Periodic;
+    Period => 4 ms; --  250 Hz
+    
+  -- Roshan Cheriyan begin q9 addition 
+  annex EMV2 {**
+  	use types Crazyflie_Errors;
+  	use behavior Crazyflie_Errors::simple;
+  	
+  	-- Roshan Cheriyan begin q12 addition
+  	error propagations
+  	--outgoing error propagation
+  	  Magneto_out: out propagation {ValueError};
+  	flows
+  	  --When the sensor fails, its error is propagated through port Accelero_Out
+  	  ErrorSource: error source Magneto_out {ValueError} when {ValueError};
+  	end propagations;
+  	-- Roshan Cheriyan end q12 addition
+  	
+  	properties
+  	  -- Useful for FHA reports
+  	  EMV2::OccurrenceDistribution => [ ProbabilityValue => 1.0e-9 ; Distribution => Poisson;] applies to Failed;
+  	  EMV2::severity => 2 applies to Failed;
+  	  EMV2::likelihood => D applies to Failed;
+  	  EMV2::hazards =>
+  	    ([ crossreference => "";
+  	       --failure => "Loss of sensor readings";
+  	       failure => "ValueErroneous";
+  	       --phases => ("all");
+  	       phases => ("In Flight Mode");
+  	       --description => "Sensor failure";
+  	       description => "Magneto sensor failure resulting loss in heading awareness";
+  	       --comment => "May be critical as no redundancy on UAV";
+  	       comment => "May have redudancy through GPS fusion or sensor drift corrections";
+  	     ]) applies to Failed;
+  	  --component error behavior 
+  	    --transitions
+  	      --t1 : Operational -[ failure]-> Failed;
+  	  --end compoent;
+  **};
+  -- Roshan Cheriyan end q9 addition
+  end Magneto;
+
+
+
+
+
+  abstract Sensor_Fusion
+  features
+    Accelero_In : in data port;
+    Gyro_In     : in data port;
+    Magneto_In  : in data port;
+    Data_F_Out  : out data port; -- Fusioned data
+    
+  flows
+    f1 : flow path Accelero_In -> Data_F_Out {latency => 200 us .. 400 us; };	
+    f2 : flow path Gyro_In -> Data_F_Out {latency => 200 us .. 400 us; };
+    	   
+  properties
+    Dispatch_Protocol => Periodic;
+    Period => 4 ms; --  250 Hz
+    
+  -- Roshan Cheriyan begin q9 addition 
+  annex EMV2 {**
+  	use types Crazyflie_Errors;
+  	use behavior Crazyflie_Errors::simple;
+  	
+  	-- Roshan Cheriyan begin q12 addition
+  	error propagations
+  	--outgoing error propagation
+  	-- Roshan cheriyan begin q13 addition 
+  	  Accelero_In: in propagation {ValueError};
+  	  Gyro_In: in propagation {ValueError};
+  	  Magneto_In: in propagation {ValueError};
+  	  Data_F_Out: out propagation {ValueError};
+  	flows
+  	  --When the sensor fails, its error is propagated through port Accelero_Out
+  	  --f1 : error path Accelero_In -> Data_F_Out; 
+  	  Path1: error path Accelero_In {ValueError} -> Data_F_Out {ValueError};
+  	  Path2: error path Gyro_In {ValueError} -> Data_F_Out {ValueError};
+  	  Path3: error path Magneto_In {ValueError} -> Data_F_Out {ValueError}; 
+  	  --ErrorSource: error source Data_F_Out {ValueError} when {ValueError};
+  	end propagations;
+  	-- Roshan Cheriyan end q12 addition
+  	
+  	component error behavior 
+  	transitions
+  	  t1: Operational -[Accelero_In.ValueError or Gyro_In.ValueError or Magneto_In.ValueError]-> Failed;
+  	propagations
+  	   Failed -[]-> Data_F_Out {ValueError};
+  	end component;
+  	-- Roshan Cheriyen end 13 addition
+  	
+  	properties
+  	  -- Useful for FHA reports
+  	  EMV2::OccurrenceDistribution => [ ProbabilityValue => 1.0e-9 ; Distribution => Poisson;] applies to Failed;
+  	  EMV2::severity => 1 applies to Failed;
+  	  EMV2::likelihood => C applies to Failed;
+  	  EMV2::hazards =>
+  	    ([ crossreference => "";
+  	       --failure => "Loss of sensor readings";
+  	       failure => "ValueErroneous";
+  	       --phases => ("all");
+  	       phases => ("In Flight Mode");
+  	       --description => "Sensor failure";
+  	       description => "Sensor fusion failure resulting invalid data due to negative inputs or a fault in the logic";
+  	       --comment => "May be critical as no redundancy on UAV";
+  	       comment => "May be critical to safe flight, which affects all downstream control decisions";
+  	     ]) applies to Failed;
+  **};
+  -- Roshan Cheriyan end q9 addition
+  end Sensor_Fusion;
+
+
+
+
+
+  abstract Controller
+  features
+    Data_F_In : in data port;
+    Gyro_In   : in data port;
+    Motor_Out : out data port;
+    TC : in data port;
+  flows
+  	f1 : flow path Data_F_In -> Motor_Out {latency => 200 us .. 400 us; };	
+    f2 : flow path Gyro_In -> Motor_Out {latency => 200 us .. 400 us; };	
+    
+  properties
+    Dispatch_Protocol => Periodic;
+    Period => 2 ms; --  500 Hz
+    
+  -- Roshan Cheriyan begin q9 addition 
+  annex EMV2 {**
+  	use types Crazyflie_Errors;
+  	use behavior Crazyflie_Errors::simple;
+  	
+  	-- Roshan Cheriyan begin q12 addition
+  	error propagations
+  	--outgoing error propagation
+  	-- Roshan cheriyan begin q13 addition 
+  	-- Roshan Cheriyan begin q16 addition
+  	  Data_F_In: in propagation {ValueError};
+  	  Gyro_In: in propagation {ValueError};
+  	  Motor_Out: out propagation {ValueError};
+  	flows
+  	  --When the sensor fails, its error is propagated through port Accelero_Out
+  	  --f1 : error path Accelero_In -> Data_F_Out; 
+  	  Path1: error path Data_F_In {ValueError} -> Motor_Out {ValueError};
+  	  Path2: error path Gyro_In {ValueError} -> Motor_Out {ValueError};
+  	  --ErrorSource: error source Data_F_Out {ValueError} when {ValueError};
+  	end propagations;
+  	-- Roshan Cheriyan end q12 addition
+  	
+  	component error behavior 
+  	transitions
+  	  t1: Operational -[Data_F_In.ValueError or Gyro_In.ValueError]-> Failed;
+  	propagations
+  	   Failed -[]-> Motor_Out {ValueError};
+  	end component;
+  	-- Roshan Cheriyan end q16 addition
+  	-- Roshan Cheriyen end 13 addition
+  	
+  	properties
+  	  -- Useful for FHA reports
+  	  EMV2::OccurrenceDistribution => [ ProbabilityValue => 1.0e-9 ; Distribution => Poisson;] applies to Failed;
+  	  EMV2::severity => 1 applies to Failed;
+  	  EMV2::likelihood => C applies to Failed;
+  	  EMV2::hazards =>
+  	    ([ crossreference => "";
+  	       --failure => "Loss of sensor readings";
+  	       failure => "ValueErroneous";
+  	       --phases => ("all");
+  	       phases => ("In Flight Mode");
+  	       --description => "Sensor failure";
+  	       description => "Controller failure results invalid or delayed motor commands";
+  	       --comment => "May be critical as no redundancy on UAV";
+  	       comment => "May lead to flight control breakdown, which is high safety risk";
+  	     ]) applies to Failed;
+  	  --component error behavior 
+  	    --transitions
+  	      --t1 : Operational -[ failure]-> Failed;
+  	  --end compoent;
+  **};
+  -- Roshan Cheriyan end q9 addition
+  end Controller;
+
+
+
+
+
+
+
+  abstract Motors
+  features
+    Motor_In : in data port;
+    
+  flows
+    f1 : flow sink Motor_In {latency => 100 us .. 500 us; };
+    			
+  properties
+--    Dispatch_Protocol => Aperiodic;
+    Dispatch_Protocol => Periodic;
+    Period => 2ms;
+    
+  -- Roshan Cheriyan begin q9 addition 
+  annex EMV2 {**
+  	use types Crazyflie_Errors;
+  	use behavior Crazyflie_Errors::simple;
+  	
+  	-- Roshan Cheriyan begin q12 addition
+  	error propagations
+  	--outgoing error propagation
+  	-- Roshan cheriyan begin q13 addition 
+  	-- Roshan Cheriyan begin q16 addition
+  	  Motor_In: in propagation {ValueError};
+  	flows
+  	  --When the sensor fails, its error is propagated through port Accelero_Out
+  	  --f1 : error path Accelero_In -> Data_F_Out; 
+  	  ErrorSink: error sink Motor_In {ValueError};
+  	  --ErrorSource: error source Data_F_Out {ValueError} when {ValueError};
+  	end propagations;
+  	-- Roshan Cheriyan end q12 addition
+  	
+  	component error behavior 
+  	transitions
+  	  t1: Operational -[Motor_In.ValueError]-> Failed;
+  	end component;
+  	-- Roshan Cheriyan end q16 addition
+  	-- Roshan Cheriyen end 13 addition
+  	
+  	properties
+  	  -- Useful for FHA reports
+  	  EMV2::OccurrenceDistribution => [ ProbabilityValue => 1.0e-9 ; Distribution => Poisson;] applies to Failed;
+  	  EMV2::severity => 1 applies to Failed;
+  	  EMV2::likelihood => C applies to Failed;
+  	  EMV2::hazards =>
+  	    ([ crossreference => "";
+  	       --failure => "Loss of sensor readings";
+  	       failure => "Lost";
+  	       --phases => ("all");
+  	       phases => ("In Flight Mode");
+  	       --description => "Sensor failure";
+  	       description => "Motor failure resulting lost or invalid outputs, which may either reduce or remove the thrust";
+  	       --comment => "May be critical as no redundancy on UAV";
+  	       comment => "May be of one or more propellers failing, which is critical to flight stability";
+  	     ]) applies to Failed;
+  	  --component error behavior 
+  	    --transitions
+  	      --t1 : Operational -[ failure]-> Failed;
+  	  --end compoent;
+  **};
+  -- Roshan Cheriyan end q9 addition
+  end Motors;
+
+
+
+
+
+  abstract Pilot
+  features
+	Order : out data port;
+  end Pilot;
+
+
+
+  system Crazyflie_Functional_Chain
+  end Crazyflie_Functional_Chain;
+
+  system implementation Crazyflie_Functional_Chain.impl
+  subcomponents
+    --  Sensing
+    Acc        : abstract Accelero;
+    Gyro       : abstract Gyro;
+    Magneto    : abstract Magneto;
+
+    Pilot      : abstract Pilot;
+
+    --  Computing
+    Fusion     : abstract Sensor_Fusion;
+    Controller : abstract Controller;
+
+    --  Acting
+    Motors : abstract Motors;
+
+  connections
+    C1 : port Acc.Accelero_Out     -> Fusion.Accelero_In;
+    C2 : port Gyro.Gyro_Out        -> Fusion.Gyro_In;
+    C3 : port Magneto.Magneto_Out  -> Fusion.Magneto_In;
+
+    C4 : port Gyro.Gyro_Out        -> Controller.Gyro_In;
+    C5 : port Fusion.Data_F_Out    -> Controller.Data_F_In;
+
+    C6 : port Controller.Motor_Out -> Motors.Motor_In;
+
+    C7 : port Pilot.Order -> Controller.TC;
+
+  flows
+  	f_etef1 : end to end flow Gyro.f1 -> C2 -> Fusion.f2 -> C5 -> Controller.f1 -> C6 -> Motors.f1 { latency => 0 ms .. 2 ms;};
+  	f_etef1bis : end to end flow Gyro.f1 -> C4 -> Controller.f2 -> C6 -> Motors.f1 { latency => 0 ms .. 2 ms;};
+    f_etef2 : end to end flow Acc.f1 -> C1 -> Fusion.f1 -> C5 -> Controller.f1 -> C6 -> Motors.f1 { latency => 0 ms .. 2 ms;};
+  
+  -- Roshan Cheriyan begin q11 addition
+  annex EMV2 {**
+  	use types Crazyflie_Errors;
+  	use behavior Crazyflie_Errors::simple;
+  	composite error behavior 
+  	states
+  	  [ Acc.Operational
+  	  	and Gyro.Operational
+  	  	and Magneto.Operational
+  	  	and Fusion.Operational
+  	  	and Controller.Operational
+  	  	and Motors.Operational
+  	  ]-> Operational;
+  	  
+  	  [ Acc.Failed
+  	  	or Gyro.Failed
+  	  	or Magneto.Failed
+  	  	or Fusion.Failed
+  	  	or Controller.Failed
+  	  	or Motors.Failed
+  	  ]-> Failed;
+  	end composite;
+  **};
+  -- Roshan Cheriyan end q11 addition
+  
+    
+  end Crazyflie_Functional_Chain.impl;
+
+end Crazyflie_functional;
