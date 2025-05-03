@@ -1,0 +1,49 @@
+FFT demo
+========
+
+* About
+
+This demo illustrates a basic implementaiton of a FFT (Fast Fourier
+Transform) system. It is made of a periodic task that is sampling a
+periodic signal, and another task that is sampling its value.
+
+This demo is part of class material for OMSCS CS-8803-O09.
+
+The reader is expected to modify only elements from fft.c
+
+* Source code organization
+
+The following files are provided
+
+- Makefile: script to compile the demo
+- README: ths file
+- complex.[ch]: library to manipulate complex numbers, implementation
+  of FFT
+- fft.c: main program
+- list.[ch]: utility functions to manipulate lists
+- msg_box.[ch]: utility functions to create a message box
+- periodic_task.[ch]: pattern to support a periodic task
+- utils.[ch]: misc. utility functions
+
+* IMPORTANT
+
+This demo requires a valid POSIX compliant OS, e.g. Linux or OS X.  A
+makefile is provided for this two OSes, tested on OS X 12 and Debian 9.0.
+
+To compile this demo for OS X, simply run the makefile. Open a
+terminal, go to the source directory, and type 'make'
+
+To compile this demo for Linux, edit the provided makefile, and
+uncomment linues 23 and 24 to activate the right set of compiler
+flags. Then, open a terminal, go to the source directory, and type
+'make'
+
+When running the fft binary, a valid trace might look like this:
+
+neraka% ./fft
+ FFT Demo ....
+ Creating the application tasks ....
+ Tasks .. created and launched
+  0.1687    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374    0.3374
+  0.3529    0.6923    0.6522    0.5872    0.4996    0.3930    0.2717    0.1411    0.0311    0.1411    0.2717    0.3930    0.4996    0.5872    0.6522    0.6923
+  0.4611    0.8812    0.7648    0.5911    0.3879    0.1925    0.0887    0.1503    0.1852    0.1503    0.0887    0.1925    0.3879    0.5911    0.7648    0.8812
